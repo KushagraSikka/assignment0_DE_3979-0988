@@ -78,7 +78,7 @@ def extract_incidents(pdf_path):
                 'Date/Time': lines[i].strip(),
                 'Incident Number': lines[i + 1].strip(),
                 'Location': lines[i + 2].strip(),
-                'Nature': edge_case_temp if ':' not in lines[i + 3].strip() else "kush",
+                'Nature': edge_case_temp if ':' not in lines[i + 3].strip() else "NULLVALUE",
                 'Incident ORI': lines[i + 4].strip()
             }
             incidents.append(incident_data)
@@ -163,7 +163,7 @@ def status(conn):
     results = c.fetchall()
 
     for nature, count in results:
-        if (nature == "kush"):
+        if (nature == "NULLVALUE"):
             print(f'|{count}')
 
         else:

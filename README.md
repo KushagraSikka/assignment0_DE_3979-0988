@@ -1,4 +1,3 @@
-
 # Assignment 0 - Data Engineering (DE_3979-0988)
 
 ## Description
@@ -23,9 +22,11 @@ To get started with this project, follow these steps:
 The `main.py` script is the entry point of the project. It accepts the `--incidents` argument, which specifies the URL of the incident PDF to process.
 
 Example usage:
+
 ```bash
 pipenv run python main.py --incidents URL
 ```
+
 Replace `URL` with the actual URL of the incident PDF.
 
 ## Functions
@@ -41,9 +42,11 @@ Replace `URL` with the actual URL of the incident PDF.
 ## Tests
 
 To ensure the correctness and reliability of the code, tests have been implemented using the pytest framework. To run the tests, execute the following command in the terminal:
+
 ```bash
 pipenv run pytest
 ```
+
 This command will automatically discover and execute all test files within the tests directory and its subdirectories.
 
 ## Bugs and Assumptions
@@ -58,3 +61,7 @@ This command will automatically discover and execute all test files within the t
 ## Acknowledgments
 
 - Stack Overflow community for resolving coding issues.
+
+## VIDEO DEMO
+
+https://drive.google.com/file/d/1vy1jD-YccVTNjuZ0hWv1OyJANR6g1Jqc/view?usp=sharing
