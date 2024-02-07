@@ -13,6 +13,7 @@ install = "*"
 pyarrow = "*"
 pdfreader = "*"
 pypdf = "*"
+python-dateutil = "*"
 pypdf2 = "*"
 
 [dev-packages]

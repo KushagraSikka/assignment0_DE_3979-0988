@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import fitz
+import fitz  # Ensure fitz is imported
 import random
 import datetime
 import argparse
@@ -10,12 +12,16 @@ import os
 import sqlite3
 from PyPDF2 import PdfReader
 
+# Function to download a PDF from a given URL and save it locally
+
 
 def download_pdf(url, local_filename='incident.pdf'):
     response = requests.get(url)
     with open(local_filename, 'wb') as file:
         file.write(response.content)
     return local_filename
+
+# Function to generate random URLs for daily incident summary PDFs
 
 
 def generate_random_data(start_date, end_date, number_of_links):
@@ -47,85 +53,40 @@ def generate_random_data(start_date, end_date, number_of_links):
 
     return random_urls
 
+# Function to extract incidents from a PDF file
+
 
 def extract_incidents(pdf_path):
-    doc = fitz.open(pdf_path)
+    # Open the PDF file to read its contents
+    with fitz.open(pdf_path) as doc:
+        all_text = ''.join(page.get_text() for page in doc)
+
+    # Split the combined text into individual lines
+    lines = all_text.split('\n')
+
     incidents = []
-    is_header = True  # Flag to identify the header line
 
-    for page in doc:
-        text = page.get_text("text")
-        lines = text.split('\n')
+    for i in range(len(lines)):
+        if 'Date / Time' in lines[i]:
+            continue  # Skip header line
 
-        for i in range(len(lines)):
-            if is_header:
-                if 'Date / Time' in lines[i]:
-                    is_header = False
-                continue  # Skip header line
-
-            # Check if the line is empty (no characters at all)
-            if not lines[i].strip():
-                date_time = "NULL"
-                incident_number = "NULL"
-                location = "NULL"
-                nature = "NULL"
-                incident_ori = "NULL"
-            else:
-                if i + 4 < len(lines) and '/' in lines[i] and ':' in lines[i]:
-                    date_time = lines[i].strip()
-                    incident_number = lines[i + 1].strip()
-                    location = lines[i + 2].strip()
-                    nature = lines[i + 3].strip()
-                    incident_ori = lines[i + 4].strip()
-                else:
-                    # Handle cases where there are not enough lines for a complete entry
-                    date_time = "NULL"
-                    incident_number = "NULL"
-                    location = "NULL"
-                    nature = "NULL"
-                    incident_ori = "NULL"
-
+        if i + 4 < len(lines) and '/' in lines[i] and ':' in lines[i]:
+            edge_case_temp = lines[i + 3].strip()
+            if edge_case_temp == "RAMP":
+                edge_case_temp = lines[i + 4].strip()
             incident_data = {
-                'Date/Time': date_time,
-                'Incident Number': incident_number,
-                'Location': location,
-                'Nature': nature,
-                'Incident ORI': incident_ori
+                'Date/Time': lines[i].strip(),
+                'Incident Number': lines[i + 1].strip(),
+                'Location': lines[i + 2].strip(),
+                'Nature': edge_case_temp if ':' not in lines[i + 3].strip() else "kush",
+                'Incident ORI': lines[i + 4].strip()
             }
-            # incidents.append(incident_data)
-            # if i + 4 < len(lines) and '/' in lines[i] and ':' in lines[i]:
-            #     date_times.append(lines[i].strip()) if checkdatetime(
-            #         lines[i].strip()) else natures.append(" ")
-            #     incident_numbers.append(
-            #         lines[i + 1].strip()) if "-" in lines[i+1].strip() else natures.append(" ")
-            #     locations.append(
-            #         lines[i + 2].strip()) if " " in lines[i+2] else natures.append(" ")
-            # if checkdatetime(lines[i+3].strip()):
-            #     natures.append(" ")
-            # else:
-            #     natures.append(lines[i + 3].strip())
-            # # natures.append(lines[i + 3].strip()) if " " in lines[i+3] else " "
-            # incident_oris.append(
-            #     lines[i + 4].strip()) if lines[i+4].isalnum() else " "
+            incidents.append(incident_data)
 
-    doc.close()
     return incidents
 
 
-# def createdb():
-#     # Define the database path to be in the 'resources' folder of the parent directory
-#     parent_dir = os.path.dirname(os.getcwd())
-#     db_path = os.path.join(parent_dir, 'resources', 'normanpd.db')
-
-#     # Make sure the 'resources' directory exists, create if it does not
-#     os.makedirs(os.path.dirname(db_path), exist_ok=True)
-
-#     # Connect to the SQLite database at the specified path
-#     conn = sqlite3.connect(db_path)
-#     c = conn.cursor()
-#     c.execute('''CREATE TABLE IF NOT EXISTS incidents
-#                  (incident_time TEXT, incident_number TEXT UNIQUE, incident_location TEXT, nature TEXT, incident_ori TEXT)''')
-#     return conn
+# Function to create a SQLite database with necessary tables
 
 
 def createdb(db_filename="normanpd.db", resources_dir="resources"):
@@ -172,6 +133,8 @@ def createdb(db_filename="normanpd.db", resources_dir="resources"):
         print(f"Error connecting to database: {e}")
         return None
 
+# Function to populate the SQLite database with incident data
+
 
 def populatedb(db, incidents):
     c = db.cursor()
@@ -185,19 +148,7 @@ def populatedb(db, incidents):
                       (incident['Date/Time'], incident['Incident Number'], incident['Location'], incident['Nature'], incident['Incident ORI']))  # Use keys accordingly
     db.commit()
 
-
-# def populate_db(db_path, df):
-#     """Insert DataFrame records into the SQLite database, excluding rows with null Incident Numbers."""
-#     # Filter out rows where 'Incident Number' is null or empty
-#     filtered_df = df[pd.notnull(df['Incident Number']) & (
-#         df['Incident Number'] != '')]
-
-#     # Connect to the SQLite database
-#     conn = sqlite3.connect(db_path)
-#     # Replace 'if_exists='replace'' with 'if_exists='append'' to keep existing data and add new non-null records
-#     filtered_df.to_sql('incidents', conn, if_exists='append', index=False)
-#     conn.commit()
-#     conn.close()
+# Function to display the status of incidents in the database
 
 
 def status(conn):
@@ -210,8 +161,15 @@ def status(conn):
     '''
     c.execute(query)
     results = c.fetchall()
+
     for nature, count in results:
-        print(f'{nature}|{count}')
+        if (nature == "kush"):
+            print(f'|{count}')
+
+        else:
+            print(f'{nature}|{count}')
+
+# Function to print the total count of incidents in the database
 
 
 def print_total_incidents_count(db):
@@ -229,6 +187,8 @@ def print_total_incidents_count(db):
 
     # Close the connection to the database
     conn.close()
+
+# Main function to orchestrate the entire process
 
 
 def main(url):
@@ -255,6 +215,7 @@ def main(url):
     os.remove(pdf_path)
 
 
+# Entry point of the script
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Download and process police incident PDFs.')
